@@ -6,6 +6,7 @@ var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
+var exportRouter = require('./routes/export');
 
 var app = express();
 
@@ -18,8 +19,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/api', indexRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/export', exportRouter);
 
 // any routes not picked up by the server api will be handled by the react router
 app.use('/*', staticFiles)
