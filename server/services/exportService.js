@@ -120,20 +120,24 @@ module.exports = class crawlReviews {
         }
         return new Promise(async (resolve, reject) => {
             let urlRquest = encodeURI(amzUrl)
-            let result = await this.client.get(urlRquest)
-            let $ = cheerio.load(result)
-            let noReview = $('.totalReviewCount').text()
-            let element = $('div[data-asin]')[0]
-            let asin = $(element).attr('data-asin')
-            if (asin) {
-                let data = {
-                    noReview: noReview,
-                    asin: asin
+            this.client.get(urlRquest).then(function (result) {
+                let $ = cheerio.load(result)
+                let noReview = $('.totalReviewCount').text()
+                let element = $('div[data-asin]')[0]
+                let asin = $(element).attr('data-asin')
+                if (asin) {
+                    let data = {
+                        noReview: noReview,
+                        asin: asin
+                    }
+                    resolve(data)
                 }
-                resolve(data)
-            }
+            })
+            .catch(function (err) {
+                reject(err)
+            });
+            
         })
-        
     }
 
     async startCrawl() {
@@ -143,7 +147,7 @@ module.exports = class crawlReviews {
             }
             let data = await this.getIdProduct(this.amzUrl)
 
-            if (data) {
+            if (data.noReview && data.asin) {
                 let noPage = Math.ceil(parseInt(data.noReview.replace(/\D/g,''))/PAGE_SIZE)
                 this.idProduct = data.asin
                 console.log(data)
@@ -181,7 +185,6 @@ module.exports = class crawlReviews {
                 return csv
             }
         } catch (error) {
-            console.log(error)
             throw error
         }
         

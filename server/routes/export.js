@@ -13,13 +13,14 @@ router.post("/", async (req, res, next) => {
         }
         let crawl = new crawlReviews(idProduct, productHandle, template, amzUrl)
         const csv = await crawl.startCrawl()
+        
         if (csv) {
             let stream = new Stream.Readable()
             stream.push(csv)
             stream.push(null)
             stream.pipe(res)
-
         }
+        
     } catch (error) {
         res.json({success: false, message: error.message})
     }

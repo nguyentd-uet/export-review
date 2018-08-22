@@ -30,11 +30,15 @@ class ExportForm extends Component {
                 console.log(res)
                 // console.log(encodeURI(res))
                 this.setState({isLoading: false})
-                let filename = amzUrl !== '' && amzUrl.split('/')[4] ? amzUrl.split('/')[4] : idProduct
-                let tempLink = document.createElement('a');
-                tempLink.href = 'data:text/csv;charset=utf-8,'  + encodeURI(res.data);
-                tempLink.setAttribute('download', filename + '.csv');
-                tempLink.click();
+                if (res.data.success) {
+                    let filename = amzUrl !== '' && amzUrl.split('/')[4] ? amzUrl.split('/')[4] : idProduct
+                    let tempLink = document.createElement('a');
+                    tempLink.href = 'data:text/csv;charset=utf-8,'  + encodeURI(res.data);
+                    tempLink.setAttribute('download', filename + '.csv');
+                    tempLink.click();
+                } else {
+                    alert(res.data.message)
+                }
             })
             .catch(err => {
                 this.setState({isLoading: false})
