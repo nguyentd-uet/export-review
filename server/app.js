@@ -3,6 +3,7 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+const kue = require('kue');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -22,6 +23,7 @@ app.use(cookieParser());
 app.use('/api', indexRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/export', exportRouter);
+app.use('/queue', kue.app);
 
 // any routes not picked up by the server api will be handled by the react router
 app.use('/*', staticFiles)

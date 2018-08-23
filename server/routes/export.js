@@ -4,6 +4,7 @@ var router = express.Router();
 // const fs = require('fs');
 const Stream = require('stream');
 const crawlReviews = require('../services/exportService');
+const {create} = require('../queue/export');
 
 router.post("/", async (req, res, next) => {
     try {
@@ -11,15 +12,30 @@ router.post("/", async (req, res, next) => {
         if (!amzUrl && !idProduct) {
             res.json({success: false, message: 'Enter link product or product id'})
         }
-        let crawl = new crawlReviews(idProduct, productHandle, template, amzUrl)
-        const csv = await crawl.startCrawl()
+        create({amzUrl, idProduct, productHandle, template}, (err) => {
+            if (err) {
+                return res.json({
+                    error: err,
+                    success: false,
+                    message: 'Could not create requirement',
+                });
+            } else {
+                return res.json({
+                    error: null,
+                    success: true,
+                    message: 'Successfully created requirement',
+                });
+            }
+        })
+        // let crawl = new crawlReviews(idProduct, productHandle, template, amzUrl)
+        // const csv = await crawl.startCrawl()
         
-        if (csv) {
-            let stream = new Stream.Readable()
-            stream.push(csv)
-            stream.push(null)
-            stream.pipe(res)
-        }
+        // if (csv) {
+        //     let stream = new Stream.Readable()
+        //     stream.push(csv)
+        //     stream.push(null)
+        //     stream.pipe(res)
+        // }
         
     } catch (error) {
         res.json({success: false, message: error.message})
