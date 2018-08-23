@@ -1,5 +1,7 @@
 'use strict';
 const crawlReviews = require('../services/exportService');
+const {sendMail} = require('../services/mailerService');
+import * as config from '../config.json'; 
 
 let redisConfig;
 if (process.env.NODE_ENV === 'production') {
@@ -30,10 +32,10 @@ queue.on('error', (err) => {
     console.error(err.stack);
 });
 
-function createPayment(data, done) {
-    queue.create('payment', data)
+function createRequirement(data, done) {
+    queue.create('exportRequirement', data)
         .priority('critical')
-        .attempts(2)
+        .attempts(1)
         .backoff(true)
         .removeOnComplete(false)
         .save((err) => {
@@ -47,19 +49,30 @@ function createPayment(data, done) {
         });
 }
 
-queue.process('payment', 2, async (job, done) => {
+queue.process('exportRequirement', 2, async (job, done) => {
     // This is the data we sent into the #create() function call earlier
     // We're setting it to a constant here so we can do some guarding against accidental writes
-    const {idProduct, productHandle, template, amzUrl} = job.data
+    const {idProduct, productHandle, template, amzUrl, email} = job.data
     let crawl = new crawlReviews(idProduct, productHandle, template, amzUrl)
-    const csv = await crawl.startCrawl()
-    console.log(csv)
-    //... do other stuff with the data.
-    done();
+    crawl.startCrawl()
+    .then(filename => {
+        console.log(filename)
+        let link = config.BASE_URL + 'api/export/download/' + filename
+        let html = `<b>Click link to download file</b> ${link}`
+        sendMail(email, html)
+        //... do other stuff with the data.
+        done();
+    })
+    .catch(err => {
+        let html = `<b>Error when crawl data: </b> ${err.message}`
+        sendMail(email, html)
+        done(err)
+    })
+    
 });
 
 module.exports = {
     create: (data, done) => {
-        createPayment(data, done);
+        createRequirement(data, done);
     }
 };

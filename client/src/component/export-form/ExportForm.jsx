@@ -8,6 +8,7 @@ class ExportForm extends Component {
         amzUrl: '',
         idProduct: '',
         productHandle: '',
+        email: '',
         isLoading: false
     }
 
@@ -22,23 +23,15 @@ class ExportForm extends Component {
     }
 
     onCrawlBtnClick() {
-        const {template, productHandle, idProduct, amzUrl} = this.state;
-        if (template && productHandle && (idProduct || amzUrl)) {
+        const {template, productHandle, idProduct, amzUrl, email} = this.state;
+        if (template && productHandle && email && (idProduct || amzUrl)) {
             this.setState({isLoading: true})
             axios.post( '/api/export', {...this.state})
             .then(res => {
                 console.log(res)
                 // console.log(encodeURI(res))
                 this.setState({isLoading: false})
-                if (res.data.success) {
-                    let filename = amzUrl !== '' && amzUrl.split('/')[4] ? amzUrl.split('/')[4] : idProduct
-                    let tempLink = document.createElement('a');
-                    tempLink.href = 'data:text/csv;charset=utf-8,'  + encodeURI(res.data);
-                    tempLink.setAttribute('download', filename + '.csv');
-                    tempLink.click();
-                } else {
-                    alert(res.data.message)
-                }
+                alert(res.data.message)
             })
             .catch(err => {
                 this.setState({isLoading: false})
@@ -50,7 +43,7 @@ class ExportForm extends Component {
     }
 
     render() {
-        const {template, productHandle, idProduct, amzUrl, isLoading} = this.state;
+        const {template, productHandle, idProduct, amzUrl, email, isLoading} = this.state;
         return (
             <section className="section export-form">
                 <div className="container" style={{ marginBottom: "20px" }}>
@@ -124,6 +117,19 @@ class ExportForm extends Component {
                                     value={productHandle}
                                     onChange={this.handleInputChange.bind(this)}
                                     placeholder="e.g. 77-PJ4D-9SM5" 
+                                />
+                            </div>
+                        </div>
+
+                        <div className="field">
+                            <label className="label">Enter your email (We will send you an email after completing the crawl) <span className='has-text-danger'>*</span></label>
+                            <div className="control">
+                                <input className="input" 
+                                    type="email" 
+                                    name='email'
+                                    value={email}
+                                    onChange={this.handleInputChange.bind(this)}
+                                    placeholder="e.g. example@gmail.com" 
                                 />
                             </div>
                         </div>

@@ -68,8 +68,9 @@ module.exports = class crawlReviews {
                     review_date = this.formatDate(review_date)
                     let reviewer_name = $('.author').text()
                     let pictures = $('.review-image-tile')
-                    let picture_urls = ''
+                    let picture_urls
                     pictures.each((index, item) => {
+                        picture_urls = ''
                         if (index !== pictures.length - 1) {
                             picture_urls += $(item).attr('src') + ', '
                         } else {
@@ -101,9 +102,9 @@ module.exports = class crawlReviews {
                                 'email': 'example@gmail.com',
                                 'location': 'USA',
                                 'body': body,
-                                'reply': '',
+                                'reply': null,
                                 'created_at': review_date,
-                                'replied_at': ''
+                                'replied_at': null
                             })
                         }
                     }
@@ -174,15 +175,16 @@ module.exports = class crawlReviews {
                     withBOM: true
                 }
                 const csv = json2csv(dataResult, opts)
-                // let fileName = this.idProduct + '.csv'
-                // return new Promise(function (resolve, reject) {
-                //     fs.writeFile(fileName, csv, function (err) {
-                //         if (err) reject(err);
-                //         console.log('file saved');
-                //         resolve(fileName);
-                //     });
-                // });
-                return csv
+                let datetime = new Date().getTime();
+                let fileName = this.idProduct + '_' + datetime + '.csv'
+                return new Promise(function (resolve, reject) {
+                    fs.writeFile(fileName, csv, function (err) {
+                        if (err) reject(err);
+                        console.log('file saved');
+                        resolve(fileName);
+                    });
+                });
+                // return csv
             }
         } catch (error) {
             throw error
