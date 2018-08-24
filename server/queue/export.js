@@ -1,7 +1,7 @@
 'use strict';
 const crawlReviews = require('../services/exportService');
 const {sendMail} = require('../services/mailerService');
-import * as config from '../config.json'; 
+//import * as config from '../config.json'; 
 
 let redisConfig;
 if (process.env.NODE_ENV === 'production') {
@@ -57,7 +57,7 @@ queue.process('exportRequirement', 2, async (job, done) => {
     crawl.startCrawl()
     .then(filename => {
         console.log(filename)
-        let link = config.BASE_URL + 'api/export/download/' + filename
+        let link = 'https://serene-citadel-80799.herokuapp.com/api/export/download/' + filename
         let html = `<b>Click link to download file</b> ${link}`
         sendMail(email, html)
         //... do other stuff with the data.
