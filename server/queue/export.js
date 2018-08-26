@@ -49,7 +49,7 @@ function createRequirement(data, done) {
         });
 }
 
-queue.process('exportRequirement', 2, async (job, done) => {
+queue.process('exportRequirement', 1, async (job, done) => {
     // This is the data we sent into the #create() function call earlier
     // We're setting it to a constant here so we can do some guarding against accidental writes
     const {idProduct, productHandle, template, amzUrl, email} = job.data
