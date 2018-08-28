@@ -150,7 +150,7 @@ module.exports = class crawlReviews {
 
             if (data.noReview && data.asin) {
                 let noPage = Math.ceil(parseInt(data.noReview.replace(/\D/g,''))/PAGE_SIZE)
-                this.idProduct = data.asin
+                this.idProduct = this.amzUrl.split('/')[4]
                 console.log(data)
                 let dataResult = []
                 for (let i = 1; i <= noPage; i++) {
