@@ -178,7 +178,7 @@ module.exports = class crawlReviews {
                 const opts = {
                     fields,
                     excelStrings: false,
-                    withBOM: true
+                    // quote: ''
                 }
                 const csv = json2csv(dataResult, opts)
                 let datetime = new Date().getTime();
