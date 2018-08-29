@@ -8,14 +8,14 @@ const {create} = require('../queue/export');
 
 router.post("/", async (req, res, next) => {
     try {
-        const {amzUrl, idProduct, productHandle, template, email} = req.body
+        const {amzUrl, idProduct, productHandle, template, email, rating, maxReview} = req.body
         if (!amzUrl && !idProduct) {
             res.json({success: false, message: 'Enter link product or product id'})
         }
         if (!email) {
             res.json({success: false, message: 'Enter your email'})
         }
-        create({amzUrl, idProduct, productHandle, template, email}, (err) => {
+        create({amzUrl, idProduct, productHandle, template, email, rating, maxReview}, (err) => {
             if (err) {
                 return res.json({
                     error: err,

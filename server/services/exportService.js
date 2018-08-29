@@ -10,11 +10,13 @@ const AMZ_PREFIX_PRODUCT = "https://www.amazon.com/dp/"
 const PAGE_SIZE = 50
 
 module.exports = class crawlReviews {
-    constructor(idProduct, productHandle, template, amzUrl) {
+    constructor(idProduct, productHandle, template, amzUrl, rating, maxReview) {
         this.idProduct = idProduct || null
         this.productHandle = productHandle
         this.template = template
         this.amzUrl = amzUrl || null
+        this.rating = rating
+        this.maxReview = maxReview || null
         this.client = request.defaults({
             headers: {
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -78,7 +80,7 @@ module.exports = class crawlReviews {
                         }
                     })
                     if (this.template == '1') {
-                        if (rating >= 4) {
+                        if (this.rating.indexOf(rating) !== -1) {
                             dataResult.push({
                                 'title': title,
                                 'body': body,
@@ -92,7 +94,7 @@ module.exports = class crawlReviews {
                             })
                         }
                     } else if (this.template == '2') {
-                        if (rating >= 4) {
+                        if (this.rating.indexOf(rating) !== -1) {
                             dataResult.push({
                                 'product_handle': this.productHandle,
                                 'state': 'published',
@@ -114,12 +116,12 @@ module.exports = class crawlReviews {
 
     }
 
-    async getIdProduct(amzUrl) {
+    async getInfoProduct(amzUrl) {
         console.log(amzUrl)
         if (_.isNull(amzUrl)) {
             return false;
         }
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
             let urlRquest = encodeURI(amzUrl)
             this.client.get(urlRquest).then(function (result) {
                 let $ = cheerio.load(result)
@@ -146,10 +148,14 @@ module.exports = class crawlReviews {
             if (_.isNull(this.amzUrl) && this.idProduct) {
                 this.amzUrl = AMZ_PREFIX_PRODUCT + this.idProduct
             }
-            let data = await this.getIdProduct(this.amzUrl)
+            let data = await this.getInfoProduct(this.amzUrl)
 
             if (data.noReview && data.asin) {
-                let noPage = Math.ceil(parseInt(data.noReview.replace(/\D/g,''))/PAGE_SIZE)
+                if (parseInt(data.noReview.replace(/\D/g,'')) < this.maxReview || this.maxReview == null) {
+                    this.maxReview = parseInt(data.noReview.replace(/\D/g,''))
+                }
+
+                let noPage = Math.ceil(parseInt(this.maxReview)/PAGE_SIZE)
                 this.idProduct = this.amzUrl.split('/')[4]
                 console.log(data)
                 let dataResult = []
@@ -177,7 +183,7 @@ module.exports = class crawlReviews {
                 const csv = json2csv(dataResult, opts)
                 let datetime = new Date().getTime();
                 let fileName = this.idProduct + '_' + datetime + '.csv'
-                return new Promise(function (resolve, reject) {
+                return new Promise((resolve, reject) => {
                     fs.writeFile(fileName, csv, function (err) {
                         if (err) reject(err);
                         console.log('file saved');

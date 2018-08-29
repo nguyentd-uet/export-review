@@ -6,7 +6,6 @@ var logger = require('morgan');
 const kue = require('kue');
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
 var exportRouter = require('./routes/export');
 
 var app = express();
@@ -21,7 +20,6 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use('/api', indexRouter);
-app.use('/api/users', usersRouter);
 app.use('/api/export', exportRouter);
 app.use('/queue', kue.app);
 

@@ -9,6 +9,9 @@ class ExportForm extends Component {
         idProduct: '',
         productHandle: '',
         email: '',
+        linkProductOrIdProduct: 'link_product',
+        rating: ['1', '2', '3', '4', '5'],
+        maxReview: 10000,
         isLoading: false
     }
 
@@ -22,11 +25,46 @@ class ExportForm extends Component {
         });
     }
 
+    handleCheckbox(value) {
+        let {rating} = this.state
+        const index = rating.indexOf(value)
+        if (index === -1) {
+            rating.push(value)
+        } else {
+            rating.splice(index, 1)
+        }
+        this.setState({rating})
+    }
+
     onCrawlBtnClick() {
-        const {template, productHandle, idProduct, amzUrl, email} = this.state;
-        if (template && productHandle && email && (idProduct || amzUrl)) {
+        let {
+            template, 
+            productHandle, 
+            idProduct, 
+            amzUrl, 
+            email, 
+            isLoading, 
+            linkProductOrIdProduct,
+            maxReview, 
+            rating
+        } = this.state;
+
+        const data = {...this.state}
+
+        if (data.linkProductOrIdProduct === 'link_product') {
+            delete data.idProduct
+        } else {
+            delete data.amzUrl
+        }
+
+        delete data.isLoading
+        delete data.linkProductOrIdProduct
+
+        console.log(data)
+        
+        if (data.template && data.productHandle && data.email && (data.idProduct || data.amzUrl)) {
             this.setState({isLoading: true})
-            axios.post( '/api/export', {...this.state})
+            axios.post( '/api/export', data)
             .then(res => {
                 console.log(res)
                 // console.log(encodeURI(res))
@@ -43,7 +81,18 @@ class ExportForm extends Component {
     }
 
     render() {
-        const {template, productHandle, idProduct, amzUrl, email, isLoading} = this.state;
+        const {
+            template, 
+            productHandle, 
+            idProduct, 
+            amzUrl, 
+            email, 
+            isLoading, 
+            linkProductOrIdProduct,
+            maxReview, 
+            rating
+        } = this.state;
+
         return (
             <section className="section export-form">
                 <div className="container" style={{ marginBottom: "20px" }}>
@@ -53,6 +102,10 @@ class ExportForm extends Component {
                 </div>
                 <div className="columns">
                     <div className="control column is-11 is-offset-1">
+                        {/* <h4 className="subtitle">
+                            Choose template want to export
+                        </h4> */}
+                        <label className="label">Choose template want to export</label>
                         <label className="radio">
                             <input type="radio" 
                                 name="template" 
@@ -78,32 +131,113 @@ class ExportForm extends Component {
                 </div>
 
                 <div className="columns">
+                    <div className="control column is-11 is-offset-1">
+                        {/* <h4 className="subtitle">
+                            Use link product or product id to crawl
+                        </h4> */}
+                        <label className="label">Use link product or product id to crawl</label>
+                        <label className="radio">
+                            <input type="radio" 
+                                name="linkProductOrIdProduct" 
+                                value='link_product' 
+                                checked={linkProductOrIdProduct === 'link_product'} 
+                                onChange={this.handleInputChange.bind(this)}
+                            /> 
+                            Link product
+                        </label>
+                        <br/>
+                        <label className="radio">
+                            <input type="radio" 
+                                name="linkProductOrIdProduct" 
+                                value='id_product' 
+                                checked={linkProductOrIdProduct === 'id_product'}
+                                onChange={this.handleInputChange.bind(this)}
+                            /> 
+                            Product id
+                        </label>
+                    </div>
+                </div>
+
+                <div className="columns">
                     <div className="column is-5 is-offset-1">
-                        <h4 className="subtitle">
-                            Enter link product or product id. Link product will be preferred over product id
-                        </h4>
-                        <div className="field">
-                            <label className="label">Link product</label>
-                            <div className="control">
-                                <input className="input" 
-                                    type="text" 
-                                    name='amzUrl' 
-                                    value={amzUrl}
-                                    onChange={this.handleInputChange.bind(this)}
-                                    placeholder="e.g. https://www.amazon.com/dp/B01078GH6A" 
-                                />
+                        {
+                            linkProductOrIdProduct === 'link_product' ?
+                            <div className="field">
+                                <label className="label">Link product</label>
+                                <div className="control">
+                                    <input className="input" 
+                                        type="text" 
+                                        name='amzUrl' 
+                                        value={amzUrl}
+                                        onChange={this.handleInputChange.bind(this)}
+                                        placeholder="e.g. https://www.amazon.com/dp/B01078GH6A" 
+                                    />
+                                </div>
                             </div>
-                        </div>
+                            :
+                            <div className="field">
+                                <label className="label">Product id</label>
+                                <div className="control">
+                                    <input className="input" 
+                                        type="text" 
+                                        name='idProduct'
+                                        value={idProduct}
+                                        onChange={this.handleInputChange.bind(this)}
+                                        placeholder="e.g B01078GH6A" 
+                                    />
+                                </div>
+                            </div>
+                        }
+                       
                         {/* <div class="is-divider" data-content="OR"></div> */}
+
                         <div className="field">
-                            <label className="label">Product id</label>
+                            <label className="label">Product rating</label>
+                            <label className="checkbox">
+                                <input type="checkbox"
+                                    checked={rating.indexOf('1') !== -1}
+                                    onChange={this.handleCheckbox.bind(this, '1')}
+                                />
+                                1 star 
+                            </label>
+                            <label className="checkbox">
+                                <input type="checkbox"
+                                    checked={rating.indexOf('2') !== -1}
+                                    onChange={this.handleCheckbox.bind(this, '2')}
+                                />
+                                2 star
+                            </label>
+                            <label className="checkbox">
+                                <input type="checkbox"
+                                    checked={rating.indexOf('3') !== -1}
+                                    onChange={this.handleCheckbox.bind(this, '3')}
+                                />
+                                3 star
+                            </label>
+                            <label className="checkbox">
+                                <input type="checkbox"
+                                    checked={rating.indexOf('4') !== -1}
+                                    onChange={this.handleCheckbox.bind(this, '4')}
+                                />
+                                4 star
+                            </label>
+                            <label className="checkbox">
+                                <input type="checkbox"
+                                    checked={rating.indexOf('5') !== -1}
+                                    onChange={this.handleCheckbox.bind(this, '5')}
+                                />
+                                5 star
+                            </label>
+                        </div>
+
+                        <div className="field">
+                            <label className="label">Maximum number of reviews</label>
                             <div className="control">
                                 <input className="input" 
-                                    type="text" 
-                                    name='idProduct'
-                                    value={idProduct}
+                                    type="number" 
+                                    name='maxReview'
+                                    value={maxReview}
                                     onChange={this.handleInputChange.bind(this)}
-                                    placeholder="e.g B01078GH6A" 
                                 />
                             </div>
                         </div>
