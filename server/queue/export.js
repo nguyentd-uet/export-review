@@ -59,13 +59,13 @@ queue.process('exportRequirement', 1, async (job, done) => {
         console.log(filename)
         let link = 'https://serene-citadel-80799.herokuapp.com/api/export/download/' + filename
         let html = `<b>Click link to download file</b> ${link}`
-        sendMail(email, html)
+        // sendMail(email, html)
         //... do other stuff with the data.
         done();
     })
     .catch(err => {
         let html = `<b>Error when crawl data: </b> ${err.message}`
-        sendMail(email, html)
+        // sendMail(email, html)
         done(err)
     })
     

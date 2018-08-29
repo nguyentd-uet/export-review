@@ -6,17 +6,17 @@ module.exports.sendMail = function (toEmail, html) {
     var transporter = nodemailer.createTransport({
         service: 'Gmail',
         auth: {
-            user: 'nguyentd1501.uet@gmail.com',
-            pass: 'ducnguyen1501'
+            user: 'xxxxxx',
+            pass: 'xxxxxx'
         }
     });
 
     // setup e-mail data with unicode symbols
     var mailOptions = {
-        from: '"Nguyen Tran 👻" <nguyentd1501.uet@gmail.com>', // sender address
+        from: '"Nguyen Tran 👻"', // sender address
         to: toEmail, // list of receivers
         subject: 'Completed crawl', // Subject line
-        text: 'You recieved message from <nguyentd1501.uet@gmail.com>', // plaintext body
+        text: 'You recieved message from Nguyen Tran 👻', // plaintext body
         html: html // html body
     };
 
