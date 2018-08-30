@@ -4,7 +4,7 @@ var router = express.Router();
 const fs = require('fs');
 const Stream = require('stream');
 const crawlReviews = require('../services/exportService');
-const {create} = require('../queue/export');
+// const {create} = require('../queue/export');
 
 router.post("/", async (req, res, next) => {
     try {
@@ -15,30 +15,30 @@ router.post("/", async (req, res, next) => {
         if (!email) {
             res.json({success: false, message: 'Enter your email'})
         }
-        create({amzUrl, idProduct, productHandle, template, email, rating, maxReview}, (err) => {
-            if (err) {
-                return res.json({
-                    error: err,
-                    success: false,
-                    message: 'Could not create requirement',
-                });
-            } else {
-                return res.json({
-                    error: null,
-                    success: true,
-                    message: 'Successfully created requirement',
-                });
-            }
-        })
-        // let crawl = new crawlReviews(idProduct, productHandle, template, amzUrl)
-        // const csv = await crawl.startCrawl()
+        // create({amzUrl, idProduct, productHandle, template, email, rating, maxReview}, (err) => {
+        //     if (err) {
+        //         return res.json({
+        //             error: err,
+        //             success: false,
+        //             message: 'Could not create requirement',
+        //         });
+        //     } else {
+        //         return res.json({
+        //             error: null,
+        //             success: true,
+        //             message: 'Successfully created requirement',
+        //         });
+        //     }
+        // })
+        let crawl = new crawlReviews(idProduct, productHandle, template, amzUrl, rating, maxReview)
+        const csv = await crawl.startCrawl()
         
-        // if (csv) {
-        //     let stream = new Stream.Readable()
-        //     stream.push(csv)
-        //     stream.push(null)
-        //     stream.pipe(res)
-        // }
+        if (csv) {
+            let stream = new Stream.Readable()
+            stream.push(csv)
+            stream.push(null)
+            stream.pipe(res)
+        }
         
     } catch (error) {
         res.json({success: false, message: error.message})
