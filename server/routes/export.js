@@ -5,6 +5,7 @@ const fs = require('fs');
 const Stream = require('stream');
 const crawlReviews = require('../services/exportService');
 // const {create} = require('../queue/export');
+const {sendMail} = require('../services/mailerService');
 
 router.post("/", async (req, res, next) => {
     try {
@@ -31,14 +32,16 @@ router.post("/", async (req, res, next) => {
         //     }
         // })
         let crawl = new crawlReviews(idProduct, productHandle, template, amzUrl, rating, maxReview)
-        const csv = await crawl.startCrawl()
-        
-        if (csv) {
-            let stream = new Stream.Readable()
-            stream.push(csv)
-            stream.push(null)
-            stream.pipe(res)
-        }
+        const filename = await crawl.startCrawl()
+        let link = 'https://serene-citadel-80799.herokuapp.com/api/export/download/' + filename
+        let html = `<b>Click link to download file</b> ${link}`
+        sendMail(email, html)
+        // if (csv) {
+        //     let stream = new Stream.Readable()
+        //     stream.push(csv)
+        //     stream.push(null)
+        //     stream.pipe(res)
+        // }
         
     } catch (error) {
         res.json({success: false, message: error.message})
