@@ -35,7 +35,7 @@ router.post("/", async (req, res, next) => {
         const filename = await crawl.startCrawl()
         let link = 'https://serene-citadel-80799.herokuapp.com/api/export/download/' + filename
         let html = `<b>Click link to download file</b> ${link}`
-        sendMail(email, html)
+        // sendMail(email, html)
         // if (csv) {
         //     let stream = new Stream.Readable()
         //     stream.push(csv)
