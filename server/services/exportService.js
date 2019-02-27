@@ -5,9 +5,19 @@ const json2csv = require('json2csv').parse
 const fs = require('fs')
 const {deplay} = require('./ultil')
 const path = require('path')
+const puppeteer = require('puppeteer');
 const AMZ_PREFIX_PAGE_REVIEW = "https://www.amazon.com/hz/reviews-render/ajax/reviews/get/ref=cm_cr_arp_d_paging_btm_"
 const AMZ_PREFIX_PRODUCT = "https://www.amazon.com/dp/"
-const PAGE_SIZE = 50
+const PAGE_SIZE = 10
+
+const optionEmulate = {
+    viewport: { width: 375, height: 812 },
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_1_2 like Mac OS X) AppleWebKit/604.1.34 (KHTML, like Gecko) CriOS/63.0.3239.73 Mobile/15B202 Safari/604.1',
+  }
+  
+  var optionLaunch = {
+    headless: false, args: ['--disable-notifications']
+  }
 
 module.exports = class crawlReviews {
     constructor(idProduct, productHandle, template, amzUrl, rating, maxReview) {
@@ -17,139 +27,142 @@ module.exports = class crawlReviews {
         this.amzUrl = amzUrl || null
         this.rating = rating
         this.maxReview = maxReview || null
-        this.client = request.defaults({
-            headers: {
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.8',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.69 Safari/537.36',
-            },
-            'jar': true,
-        })
     }
 
-    async getReview(idProduct, pageNumber, dataResult) {
-        let urlRquest = AMZ_PREFIX_PAGE_REVIEW + pageNumber
-        urlRquest = encodeURI(urlRquest)
-        let options = {
-            method: 'POST',
-            uri: urlRquest,
-            form: {
-                reviewerType: 'all_reviews',
-                pageNumber: pageNumber,
-                reftag: 'cm_cr_arp_d_paging_btm_' + pageNumber,
-                pageSize: PAGE_SIZE,
-                asin: idProduct
-            },
-            json: true
-        };
+    async getReview(page, idProduct, noPage) {
+        try {
+            const dataResult = [];
+            
+            for (let i = 1; i <= noPage; i++) {
+                console.log('crawling page: ' + i)
+                await page.goto(
+                    `https://www.amazon.com/product-reviews/${idProduct}/ref=cm_cr_getr_d_paging_btm_${i}?reviewerType=all_reviews&pageNumber=${i}`, 
+                    {waitUntil: 'networkidle2', timeout: 0}
+                );
+                await page.evaluate(() => {
+                    window.formatDate = (currDate) => {
+                        let date = new Date(currDate)
+                        let dd = date.getDate();
+                        let mm = date.getMonth() + 1;
+                        let yyyy = date.getFullYear();
+                        if (dd < 10) {
+                            dd = '0' + dd;
+                        }
+                        if (mm < 10) {
+                            mm = '0' + mm;
+                        }
+                        return mm + '/' + dd + '/' + yyyy;
+                    }
+                })
 
-        let result = await this.client(options)
-        // result = result.replace(/&&&/g,',')
-        result = result.split('&&&')
-        result = result.join(',')
-        result = result.substring(0, result.length - 1);
-        result = result.slice(0, -1)
-        result = `[${result}]`
-        // console.log(result)
-        let tmp = JSON.parse(result)
+                const itemsTmp = await page.evaluate((idProduct, productHandle, template, rating) => {
+                    let reviews = [];
+                    const reviewList = document.querySelectorAll('#cm_cr-review_list > div[data-hook=review-content]');
+                    reviewList.length > 0 && reviewList.forEach(divEl => {
+                        const ratingDiv = divEl.querySelector('i[data-hook=review-star-rating]');
+                        const ratingClassList = ratingDiv.className;
+                        const ratingText = ratingClassList && ratingClassList.match(/\d/g).join('');
 
-        _.forEach(tmp, data => {
-            if (data[0] === 'append' && data[2] !== '' && data[2]) {
-                let $ = cheerio.load(data[2])
-                if ($('#cm_cr-pagination_bar').attr('data-hook') !== 'pagination-bar') {
-                    // $('.a-section .review').each(async (index, element) => {
-                    //     console.log(element)
-                    // })
-                    let rating = $('.a-link-normal').attr('title')[0]
-                    let title = $('.review-title').text()
-                    let body = $('.review-text').text()
-                    let review_date = $('.review-date').text()
-                    review_date = review_date.substr(3, review_date.length)
-                    review_date = this.formatDate(review_date)
-                    let reviewer_name = $('.author').text()
-                    let pictures = $('.review-image-tile')
-                    let picture_urls
-                    pictures.each((index, item) => {
-                        picture_urls = ''
-                        if (index !== pictures.length - 1) {
-                            picture_urls += $(item).attr('src') + ', '
-                        } else {
-                            picture_urls += $(item).attr('src')
+                        const title = divEl.querySelector('span[data-hook=review-title]').innerText;
+                        const body = divEl.querySelector('div[data-hook=review-body]').innerText;
+                        let review_date = divEl.querySelector('span[data-hook=review-date]').innerText;
+                        review_date = formatDate(review_date);
+
+                        const reviewer_name = divEl.querySelector('.a-profile-name').innerText;
+                        const pictures = divEl.querySelectorAll('.review-image-thumbnail');
+                        let picture_urls
+                        pictures.forEach((item, index) => {
+                            picture_urls = ''
+                            const style = item.currentStyle || window.getComputedStyle(item, false);
+                            const src = style.backgroundImage.slice(4, -1).replace(/"/g, "");
+                            if (index !== pictures.length - 1) {
+                                picture_urls += src + ', '
+                            } else {
+                                picture_urls += src
+                            }
+                        })
+                        
+                        if (template == '1') {
+                            if (rating.indexOf(ratingText) !== -1) {
+                                reviews.push({
+                                    'title': title,
+                                    'body': body,
+                                    'rating': ratingText,
+                                    'review_date': review_date,
+                                    'reviewer_name': reviewer_name,
+                                    'reviewer_email': 'example@gmail.com',
+                                    'product_id': idProduct,
+                                    'product_handle': productHandle,
+                                    'picture_urls': picture_urls
+                                })
+                            }
+                        } else if (template == '2') {
+                            if (rating.indexOf(ratingText) !== -1) {
+                                reviews.push({
+                                    'product_handle': productHandle,
+                                    'state': 'published',
+                                    'rating': ratingText,
+                                    'title': title,
+                                    'author': reviewer_name,
+                                    'email': 'example@gmail.com',
+                                    'location': 'USA',
+                                    'body': body,
+                                    'reply': null,
+                                    'created_at': review_date,
+                                    'replied_at': null
+                                })
+                            }
                         }
                     })
-                    if (this.template == '1') {
-                        if (this.rating.indexOf(rating) !== -1) {
-                            dataResult.push({
-                                'title': title,
-                                'body': body,
-                                'rating': rating,
-                                'review_date': review_date,
-                                'reviewer_name': reviewer_name,
-                                'reviewer_email': 'example@gmail.com',
-                                'product_id': this.idProduct,
-                                'product_handle': this.productHandle,
-                                'picture_urls': picture_urls
-                            })
-                        }
-                    } else if (this.template == '2') {
-                        if (this.rating.indexOf(rating) !== -1) {
-                            dataResult.push({
-                                'product_handle': this.productHandle,
-                                'state': 'published',
-                                'rating': rating,
-                                'title': title,
-                                'author': reviewer_name,
-                                'email': 'example@gmail.com',
-                                'location': 'USA',
-                                'body': body,
-                                'reply': null,
-                                'created_at': review_date,
-                                'replied_at': null
-                            })
-                        }
-                    }
-                }
+                    return reviews;
+                }, this.idProduct, this.productHandle, this.template, this.rating);
+                dataResult.push(...itemsTmp);
+                await page.waitFor(3000);
             }
-        })
-
+            
+			return dataResult;
+        } catch (error) {
+            throw error
+        }
     }
 
-    async getInfoProduct(amzUrl) {
-        console.log(amzUrl)
+    async getInfoProduct(page, amzUrl) {
         if (_.isNull(amzUrl)) {
             return false;
         }
-        return new Promise((resolve, reject) => {
-            let urlRquest = encodeURI(amzUrl)
-            this.client.get(urlRquest).then(function (result) {
-                let $ = cheerio.load(result)
-                let noReview = $('.totalReviewCount').text()
-                let element = $('div[data-asin]')[0]
-                let asin = $(element).attr('data-asin')
-                if (asin) {
-                    let data = {
-                        noReview: noReview,
-                        asin: asin
-                    }
-                    resolve(data)
-                }
+        try {
+            await page.goto(amzUrl, {waitUntil: 'networkidle2', timeout: 0});
+
+			const asin = await page.evaluate(() => {
+				const temp = document.querySelector('div[data-asin]');
+				if (temp) return temp.getAttribute('data-asin');
+			});
+			const noReview = await page.evaluate(() => {
+                const temp = document.querySelector('[data-hook=total-review-count]');
+                if (temp) return temp.innerText.match(/\d/g).join('');
             })
-            .catch(function (err) {
-                reject(err)
-            });
-            
-        })
+
+			let data = {
+				noReview: noReview,
+				asin: asin
+            }
+			return data;
+        } catch (error) {
+            throw error
+        }
     }
 
     async startCrawl() {
+        const browser = await puppeteer.launch(optionLaunch);
+        const page = await browser.newPage();
+        await page.emulate(optionEmulate);
         try {
+            console.log('start')
             if (_.isNull(this.amzUrl) && this.idProduct) {
                 this.amzUrl = AMZ_PREFIX_PRODUCT + this.idProduct
             }
-            let data = await this.getInfoProduct(this.amzUrl)
 
+            let data = await this.getInfoProduct(page, this.amzUrl)
             if (data.noReview && data.asin) {
                 if (parseInt(data.noReview.replace(/\D/g,'')) < this.maxReview || this.maxReview == null) {
                     this.maxReview = parseInt(data.noReview.replace(/\D/g,''))
@@ -158,12 +171,8 @@ module.exports = class crawlReviews {
                 let noPage = Math.ceil(parseInt(this.maxReview)/PAGE_SIZE)
                 this.idProduct = this.amzUrl.split('/')[4]
                 console.log(data)
-                let dataResult = []
-                for (let i = 1; i <= noPage; i++) {
-                    console.log(`Crawling page : ${i}`)
-                    await this.getReview(this.idProduct, i, dataResult)
-                    await deplay(3000)
-                }
+                let dataResult = await this.getReview(page, this.idProduct, noPage);
+                await browser.close();
                 let fields;
                 if (this.template == '1') {
                     fields = ['title', 'body', 'rating', 'review_date', 'reviewer_name', 'reviewer_email',
@@ -193,6 +202,7 @@ module.exports = class crawlReviews {
                 // return csv
             }
         } catch (error) {
+            browser.close();
             throw error
         }
         

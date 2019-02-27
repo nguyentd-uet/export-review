@@ -32,7 +32,11 @@ router.post("/", async (req, res, next) => {
         //     }
         // })
         let crawl = new crawlReviews(idProduct, productHandle, template, amzUrl, rating, maxReview)
-        const filename = await crawl.startCrawl()
+        crawl.startCrawl()
+        return res.json({
+            success: true,
+            message: 'Crawling'
+        })
         let link = 'https://serene-citadel-80799.herokuapp.com/api/export/download/' + filename
         let html = `<b>Click link to download file</b> ${link}`
         // sendMail(email, html)
